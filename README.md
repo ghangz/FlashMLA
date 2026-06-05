@@ -39,6 +39,19 @@ python setup.py install
 python tests/test_flash_mla.py
 ```
 
+### Smoke test
+
+After building the extension, run a small correctness case before launching the
+full benchmark suite:
+
+```bash
+python tools/run_flash_mla_smoke.py
+```
+
+The command prints the detected torch version and MACA device name, then runs a
+single bf16 FlashMLA case against the PyTorch reference implementation. Use
+`--dtype fp16` or the shape flags in `--help` to cover additional cases.
+
 ### Usage
 
 ```python
