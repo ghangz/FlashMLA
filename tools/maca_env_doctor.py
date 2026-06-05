@@ -40,7 +40,7 @@ def _command_output(command: list[str]) -> dict[str, Any]:
 
 
 def collect_report(env: dict[str, str] | None = None) -> dict[str, Any]:
-    env = env or os.environ
+    env = os.environ if env is None else env
     maca_path = env.get("MACA_PATH")
     cuda_path = env.get("CUDA_HOME") or env.get("CUDA_PATH")
     if not cuda_path and maca_path:
@@ -49,8 +49,9 @@ def collect_report(env: dict[str, str] | None = None) -> dict[str, Any]:
     if not clang_path and maca_path:
         clang_path = str(Path(maca_path) / "mxgpu_llvm" / "bin")
 
-    cucc = shutil.which("cucc")
-    nvcc = shutil.which("nvcc")
+    search_path = env.get("PATH", "")
+    cucc = shutil.which("cucc", path=search_path)
+    nvcc = shutil.which("nvcc", path=search_path)
     report: dict[str, Any] = {
         "python": sys.version.split()[0],
         "environment": {
