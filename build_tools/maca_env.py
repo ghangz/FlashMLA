@@ -39,7 +39,7 @@ def resolve_maca_build_env(
     env: Mapping[str, str] | None = None,
     which: Callable[[str], str | None] = shutil.which,
 ) -> MacaBuildEnv:
-    env = env or os.environ
+    env = os.environ if env is None else env
     maca_path = _path_from_env(env, "MACA_PATH")
     cuda_path = (
         _path_from_env(env, "CUDA_HOME")
