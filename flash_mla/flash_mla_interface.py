@@ -7,6 +7,50 @@ import torch
 import flash_mla_cuda as flash_mla
 
 
+def _check_int32_tensor(name: str, tensor: torch.Tensor) -> None:
+    if tensor.dtype != torch.int32:
+        raise TypeError(f"{name} must use torch.int32, got {tensor.dtype}")
+
+
+def _validate_flash_mla_inputs(
+    q: torch.Tensor,
+    k_cache: torch.Tensor,
+    block_table: torch.Tensor,
+    cache_seqlens: torch.Tensor,
+    head_dim_v: int,
+    tile_scheduler_metadata: torch.Tensor,
+    num_splits: torch.Tensor,
+) -> None:
+    if q.dim() != 4:
+        raise ValueError(f"q must be 4D, got shape {tuple(q.shape)}")
+    if k_cache.dim() != 4:
+        raise ValueError(f"k_cache must be 4D, got shape {tuple(k_cache.shape)}")
+    if block_table.dim() != 2:
+        raise ValueError(f"block_table must be 2D, got shape {tuple(block_table.shape)}")
+    if cache_seqlens.dim() != 1:
+        raise ValueError(
+            f"cache_seqlens must be 1D, got shape {tuple(cache_seqlens.shape)}"
+        )
+    if num_splits.dim() != 1:
+        raise ValueError(f"num_splits must be 1D, got shape {tuple(num_splits.shape)}")
+    if q.shape[0] != block_table.shape[0] or q.shape[0] != cache_seqlens.shape[0]:
+        raise ValueError(
+            "batch size must match across q, block_table, and cache_seqlens"
+        )
+    if q.shape[-1] != k_cache.shape[-1]:
+        raise ValueError(
+            f"q head_dim ({q.shape[-1]}) must match k_cache head_dim ({k_cache.shape[-1]})"
+        )
+    if head_dim_v <= 0 or head_dim_v > k_cache.shape[-1]:
+        raise ValueError(
+            f"head_dim_v must be in (0, {k_cache.shape[-1]}], got {head_dim_v}"
+        )
+    _check_int32_tensor("block_table", block_table)
+    _check_int32_tensor("cache_seqlens", cache_seqlens)
+    _check_int32_tensor("tile_scheduler_metadata", tile_scheduler_metadata)
+    _check_int32_tensor("num_splits", num_splits)
+
+
 def get_mla_metadata(
     cache_seqlens: torch.Tensor,
     num_heads_per_head_k: int,
@@ -52,6 +96,15 @@ def flash_mla_with_kvcache(
         out: (batch_size, seq_len_q, num_heads_q, head_dim_v).
         softmax_lse: (batch_size, num_heads_q, seq_len_q), torch.float32.
     """
+    _validate_flash_mla_inputs(
+        q,
+        k_cache,
+        block_table,
+        cache_seqlens,
+        head_dim_v,
+        tile_scheduler_metadata,
+        num_splits,
+    )
     if softmax_scale is None:
         softmax_scale = q.shape[-1] ** (-0.5)
     out, softmax_lse = flash_mla.fwd_kvcache_mla(
