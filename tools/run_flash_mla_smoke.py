@@ -43,9 +43,18 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    if not torch.cuda.is_available():
+        raise RuntimeError(
+            "CUDA is not available. Please check your MACA driver and PyTorch installation."
+        )
     device = torch.device(args.device)
     if device.type != "cuda":
         raise ValueError("FlashMLA smoke test requires a CUDA-compatible MACA device.")
+    if device.index is not None and device.index >= torch.cuda.device_count():
+        raise ValueError(
+            f"Device index {device.index} is out of range. Total available devices: "
+            f"{torch.cuda.device_count()}"
+        )
 
     torch.set_default_dtype(args.dtype)
     torch.set_default_device(device)
