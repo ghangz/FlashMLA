@@ -517,8 +517,8 @@ def _run_command(command):
         return subprocess.check_output(
             command, stderr=subprocess.STDOUT, text=True
         ).strip()
-    except (OSError, subprocess.CalledProcessError) as err:
-        return str(err)
+    except (OSError, subprocess.CalledProcessError):
+        return None
 
 
 def collect_benchmark_metadata():
@@ -551,6 +551,8 @@ def collect_benchmark_metadata():
 
 
 def write_benchmark_metadata(path):
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", encoding="utf-8") as fout:
         json.dump(collect_benchmark_metadata(), fout, indent=2, sort_keys=True)
         fout.write("\n")
