@@ -1,6 +1,9 @@
+import sys
 import unittest
 from pathlib import Path
 from tempfile import TemporaryDirectory
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from build_tools.maca_env import (
     format_maca_build_env_errors,
@@ -61,6 +64,23 @@ class MacaEnvTest(unittest.TestCase):
 
             self.assertEqual(build_env.cucc_path, path_cucc)
             self.assertEqual(validate_maca_build_env(build_env), [])
+
+    def test_resolve_maca_build_env_strips_whitespace(self):
+        with TemporaryDirectory() as tmp_dir:
+            tmp_path = Path(tmp_dir)
+            maca_path = tmp_path / "maca"
+            for path in (maca_path / "tools" / "cu-bridge" / "bin", maca_path / "mxgpu_llvm" / "bin", maca_path / "lib"):
+                path.mkdir(parents=True)
+            cucc = maca_path / "tools" / "cu-bridge" / "bin" / "cucc"
+            cucc.write_text("#!/bin/sh\n", encoding="utf-8")
+
+            build_env = resolve_maca_build_env(
+                {"MACA_PATH": f"  {maca_path}  "},
+                which=lambda _: None,
+            )
+
+            self.assertEqual(build_env.maca_path, maca_path)
+            self.assertEqual(build_env.cucc_path, cucc)
 
 
 if __name__ == "__main__":

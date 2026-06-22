@@ -16,7 +16,8 @@ class MacaBuildEnv:
 
 def _path_from_env(env: Mapping[str, str], name: str) -> Path | None:
     value = env.get(name)
-    return Path(value).expanduser() if value else None
+    cleaned = value.strip() if value else None
+    return Path(cleaned).expanduser() if cleaned else None
 
 
 def _candidate_file(path: Path | None, relative: str) -> Path | None:

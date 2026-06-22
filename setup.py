@@ -180,8 +180,8 @@ if not SKIP_CUDA_BUILD:
             cc_flag.append("arch=compute_90,code=sm_90")
 
     lib_dir = maca_build_env.maca_lib_path
-    libraries=["mcblas"]
-    extra_objects = ['{}/lib{}.so'.format(lib_dir, l) for l in libraries]
+    libraries = ["mcblas"]
+    extra_objects = [str(lib_dir / f"lib{l}.so") for l in libraries]
     # extra_objects.extend([f for f in obj_lists if f.endswith('.o')])
 
     # HACK: The compiler flag -D_GLIBCXX_USE_CXX11_ABI is set to be the same as
@@ -346,6 +346,7 @@ setup(
             "dist",
             "docs",
             "benchmarks",
+            "build_tools",
             "flash_mla.egg-info",
         )
     ),
