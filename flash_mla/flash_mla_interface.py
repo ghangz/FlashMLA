@@ -21,6 +21,21 @@ def _validate_flash_mla_inputs(
     tile_scheduler_metadata: torch.Tensor,
     num_splits: torch.Tensor,
 ) -> None:
+    for name, tensor in (
+        ("q", q),
+        ("k_cache", k_cache),
+        ("block_table", block_table),
+        ("cache_seqlens", cache_seqlens),
+        ("tile_scheduler_metadata", tile_scheduler_metadata),
+        ("num_splits", num_splits),
+    ):
+        if not isinstance(tensor, torch.Tensor):
+            raise TypeError(f"{name} must be a torch.Tensor, got {type(tensor)}")
+        if tensor.device != q.device:
+            raise ValueError(
+                f"All tensors must be on the same device, but {name} is on {tensor.device} "
+                f"while q is on {q.device}"
+            )
     if q.dim() != 4:
         raise ValueError(f"q must be 4D, got shape {tuple(q.shape)}")
     if k_cache.dim() != 4:
@@ -33,9 +48,15 @@ def _validate_flash_mla_inputs(
         )
     if num_splits.dim() != 1:
         raise ValueError(f"num_splits must be 1D, got shape {tuple(num_splits.shape)}")
-    if q.shape[0] != block_table.shape[0] or q.shape[0] != cache_seqlens.shape[0]:
+    if (
+        q.shape[0] != block_table.shape[0]
+        or q.shape[0] != cache_seqlens.shape[0]
+        or num_splits.shape[0] != q.shape[0] + 1
+    ):
         raise ValueError(
-            "batch size must match across q, block_table, and cache_seqlens"
+            f"batch size mismatch: q batch_size is {q.shape[0]}, but block_table has "
+            f"{block_table.shape[0]}, cache_seqlens has {cache_seqlens.shape[0]}, and "
+            f"num_splits must have size {q.shape[0] + 1}, got {num_splits.shape[0]}"
         )
     if q.shape[-1] != k_cache.shape[-1]:
         raise ValueError(

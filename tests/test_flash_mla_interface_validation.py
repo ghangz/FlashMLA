@@ -48,6 +48,35 @@ def test_flash_mla_rejects_non_int32_cache_lengths():
         )
 
 
+def test_flash_mla_rejects_bad_num_splits_length():
+    q, k_cache, block_table, cache_seqlens, metadata, _num_splits = _valid_inputs()
+    num_splits = torch.zeros(2, dtype=torch.int32)
+
+    with pytest.raises(ValueError, match="num_splits must have size"):
+        flash_mla_with_kvcache(
+            q, k_cache, block_table, cache_seqlens, 4, metadata, num_splits
+        )
+
+
+def test_flash_mla_rejects_non_tensor_inputs():
+    q, k_cache, block_table, cache_seqlens, metadata, num_splits = _valid_inputs()
+
+    with pytest.raises(TypeError, match="block_table must be a torch.Tensor"):
+        flash_mla_with_kvcache(
+            q, k_cache, block_table.tolist(), cache_seqlens, 4, metadata, num_splits
+        )
+
+
+def test_flash_mla_rejects_cross_device_inputs():
+    q, k_cache, block_table, cache_seqlens, metadata, num_splits = _valid_inputs()
+    block_table = block_table.to("meta")
+
+    with pytest.raises(ValueError, match="same device"):
+        flash_mla_with_kvcache(
+            q, k_cache, block_table, cache_seqlens, 4, metadata, num_splits
+        )
+
+
 def test_flash_mla_rejects_invalid_value_head_dim():
     q, k_cache, block_table, cache_seqlens, metadata, num_splits = _valid_inputs()
 
