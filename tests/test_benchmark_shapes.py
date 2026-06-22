@@ -32,7 +32,7 @@ class BenchmarkShapeConfigTest(unittest.TestCase):
         )
 
         self.assertEqual(builder.args.args[0].arg, "device")
-        self.assertEqual(builder.args.defaults[0].value, "cuda")
+        self.assertEqual(ast.literal_eval(builder.args.defaults[0]), "cuda")
 
     def test_main_creates_shape_configs_lazily(self):
         main_block = next(
