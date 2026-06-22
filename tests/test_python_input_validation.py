@@ -2,8 +2,11 @@ import importlib
 import sys
 import types
 import unittest
+from pathlib import Path
 
 import torch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 
 class FakeFlashMla(types.SimpleNamespace):
@@ -43,15 +46,19 @@ class FakeFlashMla(types.SimpleNamespace):
 class PythonInputValidationTest(unittest.TestCase):
     def setUp(self):
         self.fake_extension = FakeFlashMla()
+        self._saved_modules = {}
+        for name in ("flash_mla_cuda", "flash_mla", "flash_mla.flash_mla_interface"):
+            if name in sys.modules:
+                self._saved_modules[name] = sys.modules[name]
         sys.modules["flash_mla_cuda"] = self.fake_extension
         sys.modules.pop("flash_mla", None)
         sys.modules.pop("flash_mla.flash_mla_interface", None)
         self.interface = importlib.import_module("flash_mla.flash_mla_interface")
 
     def tearDown(self):
-        sys.modules.pop("flash_mla", None)
-        sys.modules.pop("flash_mla.flash_mla_interface", None)
-        sys.modules.pop("flash_mla_cuda", None)
+        for name in ("flash_mla", "flash_mla.flash_mla_interface", "flash_mla_cuda"):
+            sys.modules.pop(name, None)
+        sys.modules.update(self._saved_modules)
 
     def _valid_kvcache_inputs(self):
         batch_size = 2
@@ -98,6 +105,17 @@ class PythonInputValidationTest(unittest.TestCase):
         num_splits = torch.zeros((q.shape[0],), dtype=torch.int32)
 
         with self.assertRaisesRegex(ValueError, "batch_size \\+ 1"):
+            self.interface.flash_mla_with_kvcache(
+                q, k_cache, block_table, cache_seqlens, head_dim_v, metadata, num_splits
+            )
+
+        self.assertEqual(self.fake_extension.kvcache_calls, 0)
+
+    def test_kvcache_rejects_mismatched_q_and_k_cache_dtype_before_extension(self):
+        q, k_cache, block_table, cache_seqlens, head_dim_v, metadata, num_splits = self._valid_kvcache_inputs()
+        k_cache = k_cache.to(torch.float16)
+
+        with self.assertRaisesRegex(TypeError, "same dtype"):
             self.interface.flash_mla_with_kvcache(
                 q, k_cache, block_table, cache_seqlens, head_dim_v, metadata, num_splits
             )

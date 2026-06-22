@@ -58,6 +58,14 @@ def _validate_kvcache_inputs(
     _check_dtype("cache_seqlens", cache_seqlens, torch.int32)
     _check_dtype("tile_scheduler_metadata", tile_scheduler_metadata, torch.int32)
     _check_dtype("num_splits", num_splits, torch.int32)
+    if not q.is_floating_point():
+        raise TypeError(f"q must be a floating point tensor, got {q.dtype}")
+    if not k_cache.is_floating_point():
+        raise TypeError(f"k_cache must be a floating point tensor, got {k_cache.dtype}")
+    if q.dtype != k_cache.dtype:
+        raise TypeError(
+            f"q and k_cache must have the same dtype, got {q.dtype} and {k_cache.dtype}"
+        )
 
     batch_size, _, num_heads_q, head_dim = q.shape
     _, _, num_heads_k, cache_head_dim = k_cache.shape
