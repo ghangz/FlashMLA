@@ -492,7 +492,10 @@ DEFAULT_HEADS = [128]
 
 def _parse_int_list(value):
     try:
-        return [int(item) for item in value.split(",") if item.strip()]
+        result = [int(item) for item in value.split(",") if item.strip()]
+        if not result:
+            raise argparse.ArgumentTypeError("expected at least one integer")
+        return result
     except ValueError as err:
         raise argparse.ArgumentTypeError("expected comma-separated integers") from err
 
@@ -552,6 +555,8 @@ def get_args():
 
 if __name__ == "__main__":
     args = get_args()
+    if not (args.all or args.compare or args.one):
+        args.one = True
     benchmark_type = "all" if args.all else f"{args.baseline}_vs_{args.target}" if args.compare else args.target
     output_path = args.output or f"{benchmark_type}_perf.csv"
     shape_configs = make_shape_configs(args)
