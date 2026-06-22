@@ -23,6 +23,7 @@ def test_memory_estimator_counts_k_cache_blocks():
     estimates = estimate_bytes(args)
 
     assert estimates["k_cache"] == 2 * 16 * 16 * 1 * 8 * 2
+    assert estimates["out"] == 2 * 1 * 4 * 4 * 2
     assert estimates["total"] >= estimates["k_cache"]
 
 

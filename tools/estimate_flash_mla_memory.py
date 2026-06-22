@@ -18,7 +18,7 @@ def estimate_bytes(args: argparse.Namespace) -> dict[str, int]:
 
     q = args.batch_size * args.s_q * args.h_q * args.d * dtype_bytes
     k_cache = num_blocks * args.block_size * args.h_kv * args.d * dtype_bytes
-    out = args.batch_size * args.s_q * args.h_q * args.dv * 4
+    out = args.batch_size * args.s_q * args.h_q * args.dv * dtype_bytes
     lse = args.batch_size * args.h_q * args.s_q * 4
     block_table = args.batch_size * math.ceil(max_seqlen_pad / args.block_size) * 4
     cache_seqlens = args.batch_size * 4
