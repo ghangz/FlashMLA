@@ -7,8 +7,9 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+from tempfile import TemporaryDirectory
 
-PATTERNS = ['build/**/*.so', 'dist/**/*', 'benchmark/**/*.log', 'logs/**/*', '*.txt']
+PATTERNS = ["build/**/*.so", "dist/**/*", "benchmark/**/*.log", "logs/**/*", "*.txt"]
 
 
 def sha256(path: Path) -> str:
@@ -20,6 +21,9 @@ def sha256(path: Path) -> str:
 
 
 def collect(root: Path) -> dict[str, object]:
+    if not root.is_dir():
+        raise NotADirectoryError(f"artifact root is not a directory: {root}")
+
     seen: set[str] = set()
     artifacts: list[dict[str, object]] = []
     for pattern in PATTERNS:
@@ -30,19 +34,21 @@ def collect(root: Path) -> dict[str, object]:
             if rel in seen:
                 continue
             seen.add(rel)
-            artifacts.append({"path": rel, "bytes": path.stat().st_size, "sha256": sha256(path)})
+            artifacts.append(
+                {"path": rel, "bytes": path.stat().st_size, "sha256": sha256(path)}
+            )
     return {"root": str(root), "count": len(artifacts), "artifacts": artifacts}
 
 
 def self_test() -> None:
-    sample = Path("_artifact_manifest_sample.txt")
-    sample.write_text("maca artifact\n", encoding="utf-8")
-    try:
-        data = collect(Path.cwd())
-        assert any(item["path"] == sample.name for item in data["artifacts"])
-        print(json.dumps({"ok": True, "count": data["count"]}, ensure_ascii=False))
-    finally:
-        sample.unlink(missing_ok=True)
+    with TemporaryDirectory() as tmp_dir:
+        root = Path(tmp_dir)
+        sample = root / "artifact_manifest_sample.txt"
+        sample.write_text("maca artifact\n", encoding="utf-8")
+        data = collect(root)
+    if not any(item["path"] == sample.name for item in data["artifacts"]):
+        raise RuntimeError(f"self-test failed: {data}")
+    print(json.dumps({"ok": True, "count": data["count"]}, ensure_ascii=False))
 
 
 def main() -> int:
